@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Xarita — Old Maps Atlas</title>
+  <meta name="description" content="Slide through history with year-accurate borders, then lay scanned old maps from libraries worldwide over today's map. In English, Uzbek and Russian." />
+  <meta name="theme-color" content="#f6f2ea" />
+  <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="styles.css?v=7" />
+</head>
+<body data-mode="landing">
+  <!-- ───────── Header ───────── -->
+  <header class="topbar">
+    <a class="brand" href="#" data-go="landing" aria-label="Xarita">
+      <img src="assets/logo-mark.svg" alt="" width="34" height="34" />
+      <span class="brand-text"><b>Xarita</b><small>old maps atlas</small></span>
+    </a>
+
+    <div class="search" role="search">
+      <button class="search-btn" aria-hidden="true" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.4 5.4-1.4 1.4-5.4-5.4A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+      </button>
+      <input id="search" type="search" data-i18n-attr="placeholder:search.placeholder" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-results" />
+      <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+    </div>
+
+    <nav class="mainnav">
+      <a href="#" data-go="maps" data-i18n="nav.maps">Maps</a>
+      <a href="#" data-go="history" data-i18n="nav.history">History</a>
+      <a href="#" data-action="tours" data-i18n="nav.tours">Tours</a>
+      <a href="#" data-action="about" data-i18n="nav.about" class="nav-about">About</a>
+    </nav>
+
+    <div class="topbar-actions">
+      <label class="lang" data-i18n-attr="title:top.lang">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 6h-3a15.7 15.7 0 0 0-1.3-3.6A8 8 0 0 1 18.9 8ZM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4ZM4.3 14a8 8 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4H4.3Zm.8 2h3a15.7 15.7 0 0 0 1.3 3.6A8 8 0 0 1 5.1 16Zm3-8h-3a8 8 0 0 1 4.3-3.6C8.8 5.6 8.4 6.8 8.1 8ZM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4Zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4Zm.3 5.6c.6-1.1 1-2.3 1.3-3.6h3a8 8 0 0 1-4.3 3.6Zm1.7-5.6a16.5 16.5 0 0 0 0-4h3.4a8 8 0 0 1 0 4h-3.4Z"/></svg>
+        <select id="lang" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="uz">UZ</option>
+          <option value="ru">RU</option>
+        </select>
+      </label>
+      <button class="icon-btn" data-action="theme" data-i18n-attr="title:top.theme,aria-label:top.theme">
+        <svg viewBox="0 0 24 24" width="21" height="21"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 13.4 3.1 9 9 0 0 0 12 3Z"/></svg>
+      </button>
+      <button class="icon-btn" data-action="share" data-i18n-attr="title:top.share,aria-label:top.share">
+        <svg viewBox="0 0 24 24" width="21" height="21"><path fill="currentColor" d="M12 2 7.5 6.5l1.4 1.4L11 5.8V15h2V5.8l2.1 2.1 1.4-1.4L12 2ZM5 10v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10h-2v10H7V10H5Z"/></svg>
+      </button>
+      <button class="btn btn-red" data-action="saved" data-i18n-attr="aria-label:top.myMaps"><span class="lbl" data-i18n="top.myMaps">My maps</span><span class="lbl-short" aria-hidden="true">♥</span> <span class="count" id="fav-count">0</span></button>
+    </div>
+  </header>
+
+  <!-- ───────── Map stage ───────── -->
+  <main class="stage">
+    <div id="map" class="map"></div>
+    <div id="map-compare" class="map map-compare" hidden></div>
+    <div id="swipe" class="swipe" hidden>
+      <div class="swipe-handle" data-i18n-attr="title:cmp.drag">
+        <span id="swipe-left-label">1862</span>
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M8 5 1 12l7 7V5Zm8 0v14l7-7-7-7Z"/></svg>
+        <span id="swipe-right-label">1914</span>
+      </div>
+    </div>
+
+    <!-- Landing hero -->
+    <!-- Landing: the live map becomes a slowly turning globe that steps through eras -->
+    <section class="hero" id="hero">
+      <div class="hero-top">
+        <p class="hero-kicker" data-i18n="hero.kicker"></p>
+        <h1 data-i18n="hero.title"></h1>
+        <p class="hero-sub" data-i18n="hero.sub"></p>
+        <div class="hero-cta">
+          <button class="btn btn-dark btn-lg" data-go="maps" data-i18n="hero.explore">Explore Maps</button>
+          <button class="btn btn-red btn-lg" data-go="history" data-i18n="hero.discover">Discover History</button>
+        </div>
+        <ul class="hero-feats">
+          <li data-i18n="hero.f1"></li><li data-i18n="hero.f2"></li><li data-i18n="hero.f3"></li><li data-i18n="hero.f4"></li><li data-i18n="hero.f5"></li>
+        </ul>
+      </div>
+      <div class="hero-bottom">
+        <div class="hero-era">
+          <button class="hero-spin" id="hero-spin" data-action="hero-spin" data-i18n-attr="title:hero.pause,aria-label:hero.pause">❚❚</button>
+          <div>
+            <output class="hero-year" id="hero-year">1400</output>
+            <p class="hero-caption" id="hero-caption"></p>
+          </div>
+        </div>
+        <div class="hero-start">
+          <p class="hero-start-label" data-i18n="hero.start"></p>
+          <div class="hero-chips" id="hero-chips"></div>
+          <button class="hero-tour" data-tour="silk-road">
+            <span class="hero-tour-dot"></span> <span data-i18n="hero.tourLead">Or take the tour:</span> <b id="hero-tour-name"></b> <b>→</b>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Region card -->
+    <article class="region-card" id="region-card" hidden>
+      <button class="region-back" data-action="close-region" data-i18n-attr="aria-label:region.close">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="m15.4 7.4-1.4-1.4-6 6 6 6 1.4-1.4L10.8 12z"/></svg>
+      </button>
+      <div class="region-head">
+        <div>
+          <h2 id="region-name">—</h2>
+          <p id="region-meta" class="muted"></p>
+        </div>
+        <span class="region-swatch" id="region-swatch"></span>
+      </div>
+      <div class="region-body" id="region-body"></div>
+      <div class="region-actions">
+        <button class="btn btn-red btn-sm" data-action="quiz-start" data-i18n="quiz.btn">Quiz me</button>
+        <button class="btn btn-ghost btn-sm" data-action="region-maps" data-i18n="region.maps">Old maps of this region</button>
+      </div>
+    </article>
+
+    <!-- Quiz about the selected region (non-modal, so map questions can use the map) -->
+    <article class="quiz-card" id="quiz-card" hidden aria-live="polite">
+      <div class="quiz-top">
+        <span class="quiz-name" id="quiz-name"></span>
+        <button class="x" data-action="quiz-close" data-i18n-attr="aria-label:quiz.close">✕</button>
+      </div>
+      <div class="quiz-progress"><i id="quiz-bar"></i></div>
+      <div id="quiz-body"></div>
+    </article>
+
+    <!-- Map controls -->
+    <div class="map-tools">
+      <button data-action="zoom-in" data-i18n-attr="title:tool.zoomIn,aria-label:tool.zoomIn">+</button>
+      <button data-action="zoom-out" data-i18n-attr="title:tool.zoomOut,aria-label:tool.zoomOut">−</button>
+      <button data-action="north" class="t-desk" data-i18n-attr="title:tool.north,aria-label:tool.north">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2 7 13h10L12 2Z"/><path fill="currentColor" opacity=".35" d="M12 22 7 13h10l-5 9Z"/></svg>
+      </button>
+      <button data-action="globe" id="globe-btn" data-i18n-attr="title:tool.globe,aria-label:tool.globe">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+      </button>
+      <hr />
+      <button data-action="borders" class="on" id="borders-btn" data-i18n-attr="title:tool.borders,aria-label:tool.borders">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2" d="M4 5h7v6h9v8h-9v-8H4z"/></svg>
+      </button>
+      <button data-action="tint" class="on" id="tint-btn" data-i18n-attr="title:tool.tint,aria-label:tool.tint">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" opacity=".55" d="M3 4h9v8H3z"/><path fill="currentColor" opacity=".3" d="M12 4h9v8h-9zM3 12h12v8H3z"/><path fill="currentColor" opacity=".8" d="M15 12h6v8h-6z"/></svg>
+      </button>
+      <button data-action="compare" id="compare-btn" data-i18n-attr="title:tool.compare,aria-label:tool.compare">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 2h2v20h-2zM3 5h6v2H5v10h4v2H3V5Zm12 0h6v14h-6v-2h4V7h-4V5Z"/></svg>
+      </button>
+      <button data-action="help" class="t-desk" data-i18n-attr="title:tool.help,aria-label:tool.help">?</button>
+    </div>
+
+    <!-- Compare year chooser -->
+    <div class="compare-bar" id="compare-bar" hidden>
+      <span data-i18n="cmp.right">Right side shows</span>
+      <button data-action="cmp-step" data-step="-10" data-i18n-attr="aria-label:cmp.earlier">«</button>
+      <input type="text" inputmode="numeric" id="compare-year" value="1914" aria-label="Year" />
+      <button data-action="cmp-step" data-step="10" data-i18n-attr="aria-label:cmp.later">»</button>
+      <button class="btn btn-ghost btn-sm" data-action="compare" data-i18n="cmp.done">Done</button>
+    </div>
+
+    <!-- Overlay control -->
+    <div class="overlay-bar" id="overlay-bar" hidden>
+      <img id="ov-thumb" alt="" />
+      <div class="ov-info">
+        <small data-i18n="overlay.label">Overlay</small>
+        <b id="ov-title"></b>
+        <label class="ov-range"><span data-i18n="overlay.opacity">Opacity</span>
+          <input type="range" id="ov-opacity" min="0" max="1" step="0.05" value="0.85" />
+        </label>
+      </div>
+      <button class="icon-btn" data-action="ov-fit" data-i18n-attr="title:overlay.fit,aria-label:overlay.fit">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
+      </button>
+      <button class="x" data-action="ov-remove" data-i18n-attr="title:overlay.remove,aria-label:overlay.remove">✕</button>
+    </div>
+
+    <div class="snapshot-pill" id="snapshot-pill" data-i18n-attr="title:pill.title">
+      <span id="pill-text"></span>
+      <span class="loading-dot" id="borders-loading" hidden></span>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline" id="timeline">
+      <button class="tl-play" data-action="play" data-i18n-attr="title:tl.play,aria-label:tl.play">
+        <svg class="i-play" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M7 4v16l13-8z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+      </button>
+      <div class="tl-track" id="tl-track">
+        <div class="tl-ticks" id="tl-ticks"></div>
+        <div class="tl-snaps" id="tl-snaps"></div>
+        <div class="tl-thumb" id="tl-thumb" role="slider" tabindex="0" aria-label="Year" aria-valuemin="-3000" aria-valuemax="2010">
+          <button class="tl-nudge left" data-action="step" data-step="-1" data-i18n-attr="aria-label:tl.earlier">◀</button>
+          <input class="tl-bubble" id="year-input" type="text" inputmode="numeric" value="1862" data-i18n-attr="aria-label:tl.year" />
+          <button class="tl-nudge right" data-action="step" data-step="1" data-i18n-attr="aria-label:tl.later">▶</button>
+          <span class="tl-knob"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maps panel (bottom sheet on phones) -->
+    <aside class="panel" id="panel">
+      <button class="sheet-grip" data-action="sheet-cycle" aria-label="Resize"><span></span></button>
+      <div class="panel-head">
+        <div class="panel-title">
+          <b id="panel-place"></b>
+          <button class="chip" id="query-chip" hidden data-i18n-attr="title:panel.clearQuery">✕</button>
+        </div>
+        <button class="panel-collapse" data-action="panel-toggle" data-i18n-attr="aria-label:panel.collapse">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="m10 17 5-5-5-5v10Z"/></svg>
+        </button>
+      </div>
+      <div class="panel-filters">
+        <div class="tabs" role="tablist">
+          <button role="tab" class="tab active" data-tab="all" data-i18n="panel.all">All</button>
+          <button role="tab" class="tab" data-tab="saved" data-i18n="panel.saved">Saved</button>
+        </div>
+        <div class="filter-row">
+          <label class="mini-select" data-i18n-attr="title:panel.windowTitle">±<select id="window">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select> <span data-i18n="panel.yrs">yrs</span></label>
+          <label class="mini-select"><select id="source">
+            <option value="all" data-i18n="panel.srcAll">All sources</option>
+            <option value="allmaps" data-i18n="panel.srcGeo">Pinned to the map</option>
+            <option value="loc" data-i18n="panel.srcLoc">Library of Congress</option>
+          </select></label>
+          <label class="mini-select"><select id="sort">
+            <option value="near" data-i18n="panel.sortNear">Closest to year</option>
+            <option value="date" data-i18n="panel.sortOld">Oldest first</option>
+            <option value="-date" data-i18n="panel.sortNew">Newest first</option>
+          </select></label>
+        </div>
+      </div>
+      <p class="panel-sub muted" id="panel-sub"></p>
+      <ul class="cards" id="cards"></ul>
+      <div class="panel-foot">
+        <button class="btn btn-ghost btn-sm" id="load-more" hidden data-i18n="panel.loadMore">Load more</button>
+        <button class="btn btn-ghost btn-sm" id="export-saved" hidden data-i18n="panel.export">Export saved (.json)</button>
+      </div>
+    </aside>
+    <button class="panel-reopen" data-action="panel-toggle" id="panel-reopen" hidden data-i18n="panel.reopen">Maps</button>
+
+    <!-- Tour card -->
+    <article class="tour-card" id="tour-card" hidden>
+      <div class="tour-top">
+        <span class="tour-name" id="tour-name"></span>
+        <button class="x" data-action="tour-end" data-i18n-attr="aria-label:tour.end">✕</button>
+      </div>
+      <h3 id="tour-title"></h3>
+      <p class="tour-year" id="tour-year"></p>
+      <p id="tour-text"></p>
+      <div class="tour-nav">
+        <button class="btn btn-ghost btn-sm" data-action="tour-prev" data-i18n="tour.back">← Back</button>
+        <div class="dots" id="tour-dots"></div>
+        <button class="btn btn-red btn-sm" data-action="tour-next" id="tour-next"></button>
+      </div>
+    </article>
+
+    <div class="busy" id="busy" hidden></div>
+  </main>
+
+  <!-- ───────── Dialogs ───────── -->
+  <dialog class="viewer" id="viewer">
+    <div class="viewer-stage">
+      <div id="osd" class="osd"></div>
+      <div class="viewer-loading" id="viewer-loading"></div>
+    </div>
+    <aside class="viewer-side">
+      <button class="x viewer-close" data-action="viewer-close" data-i18n-attr="aria-label:viewer.close">✕</button>
+      <p class="muted"><span id="v-date"></span> · <span id="v-provider"></span></p>
+      <h2 id="v-title"></h2>
+      <p class="v-by" id="v-by"></p>
+      <p class="v-pinned" id="v-pinned" hidden>📍 <span data-i18n="card.pinned"></span></p>
+      <p class="v-desc" id="v-desc"></p>
+      <div class="v-tags" id="v-tags"></div>
+      <div class="v-actions">
+        <button class="btn btn-red" id="v-overlay" hidden data-i18n="viewer.overlay"></button>
+        <button class="btn btn-ghost" id="v-fav"></button>
+        <a class="btn btn-ghost" id="v-source" target="_blank" rel="noopener"></a>
+        <a class="btn btn-ghost" id="v-allmaps" target="_blank" rel="noopener" hidden data-i18n="viewer.allmaps"></a>
+        <a class="btn btn-ghost" id="v-full" target="_blank" rel="noopener" data-i18n="viewer.full"></a>
+        <button class="btn btn-ghost" id="v-jump" data-i18n="viewer.jump"></button>
+      </div>
+      <label class="v-notes">
+        <span><span data-i18n="viewer.notes">Your notes</span> <small class="muted" data-i18n="viewer.notesHint"></small></span>
+        <textarea id="v-notes" rows="4" data-i18n-attr="placeholder:viewer.notesPh"></textarea>
+      </label>
+    </aside>
+  </dialog>
+
+  <dialog class="sheet" id="tours-dialog">
+    <button class="x" data-action="dialog-close" aria-label="Close">✕</button>
+    <h2 data-i18n="tours.title">Guided tours</h2>
+    <p class="muted" data-i18n="tours.sub"></p>
+    <ul class="tour-list" id="tour-list"></ul>
+  </dialog>
+
+  <dialog class="sheet" id="help-dialog">
+    <button class="x" data-action="dialog-close" aria-label="Close">✕</button>
+    <h2 data-i18n="help.title">Shortcuts</h2>
+    <dl class="keys">
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd data-i18n="help.year"></dd>
+      <dt><kbd>Shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></dt><dd data-i18n="help.decade"></dd>
+      <dt><kbd>Space</kbd></dt><dd data-i18n="help.play"></dd>
+      <dt><kbd>/</kbd></dt><dd data-i18n="help.search"></dd>
+      <dt><kbd>B</kbd></dt><dd data-i18n="help.borders"></dd>
+      <dt><kbd>T</kbd></dt><dd data-i18n="help.tint"></dd>
+      <dt><kbd>C</kbd></dt><dd data-i18n="help.compare"></dd>
+      <dt><kbd>M</kbd> / <kbd>H</kbd></dt><dd data-i18n="help.modes"></dd>
+      <dt><kbd>Esc</kbd></dt><dd data-i18n="help.esc"></dd>
+    </dl>
+  </dialog>
+
+  <dialog class="sheet" id="about-dialog">
+    <button class="x" data-action="dialog-close" aria-label="Close">✕</button>
+    <h2 data-i18n="about.title">About Xarita</h2>
+    <div data-i18n-html="about.body"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
+  <script src="i18n.js?v=7"></script>
+  <script src="tours.js?v=7"></script>
+  <script src="sources.js?v=7"></script>
+  <script src="app.js?v=7"></script>
+</body>
+</html>
