@@ -72,62 +72,6 @@ window.TOURS = [
     ],
   },
   {
-    id: "mississippi",
-    name: { en: "Mississippi, then and now", uz: "Missisipi: oʻshanda va hozir", ru: "Миссисипи: тогда и сейчас" },
-    blurb: {
-      en: "Spanish Natchez, the territory, Ole Miss, Vicksburg and 1962.",
-      uz: "Ispan Natchezi, hudud davri, Ole Miss, Viksburg va 1962-yil.",
-      ru: "Испанский Натчез, территория, Ole Miss, Виксберг и 1962 год.",
-    },
-    stops: [
-      {
-        year: 1783, center: [-91.4, 31.56], zoom: 5, query: "Natchez",
-        title: { en: "Spanish Natchez", uz: "Ispan Natchezi", ru: "Испанский Натчез" },
-        text: {
-          en: "When the American Revolution ended, Spain still held Natchez on the bluffs of the Mississippi River. Spain and the United States argued over the border until 1798.",
-          uz: "Amerika inqilobi tugaganda Missisipi daryosi qirgʻogʻidagi Natchez hali ham Ispaniya qoʻlida edi. Ispaniya va AQSh 1798-yilgacha chegara ustida bahslashdi.",
-          ru: "Когда закончилась Американская революция, Натчез на обрывах Миссисипи ещё принадлежал Испании. Испания и США спорили о границе до 1798 года.",
-        },
-      },
-      {
-        year: 1815, center: [-89.6, 32.7], zoom: 4.8, query: "Mississippi Territory",
-        title: { en: "Mississippi Territory", uz: "Missisipi hududi", ru: "Территория Миссисипи" },
-        text: {
-          en: "Congress organized the Mississippi Territory in 1798, and Mississippi became the 20th state in December 1817. Early maps of this period are full of Choctaw and Chickasaw lands.",
-          uz: "Kongress 1798-yilda Missisipi hududini tashkil etdi va 1817-yil dekabrda Missisipi 20-shtatga aylandi. Bu davrning ilk xaritalarida Choktau va Chikaso yerlari koʻp uchraydi.",
-          ru: "Конгресс образовал Территорию Миссисипи в 1798 году, а в декабре 1817 года Миссисипи стал 20-м штатом. На ранних картах этого времени много земель чокто и чикасо.",
-        },
-      },
-      {
-        year: 1848, center: [-89.52, 34.37], zoom: 5.5, query: "Mississippi",
-        title: { en: "Ole Miss opens", uz: "Ole Miss ochiladi", ru: "Открытие Ole Miss" },
-        text: {
-          en: "The University of Mississippi opened in Oxford in 1848 with 80 students. Look for the railroad maps of this period: the line that ran through Oxford was still a plan on paper.",
-          uz: "Missisipi universiteti 1848-yilda Oksfordda 80 nafar talaba bilan ochildi. Bu davrning temir yoʻl xaritalarini qidiring: Oksforddan oʻtadigan liniya hali faqat qogʻozdagi reja edi.",
-          ru: "Университет Миссисипи открылся в Оксфорде в 1848 году, в нём было 80 студентов. Поищите железнодорожные карты того времени: линия через Оксфорд тогда существовала только на бумаге.",
-        },
-      },
-      {
-        year: 1863, center: [-90.88, 32.35], zoom: 5.5, query: "Vicksburg",
-        title: { en: "Siege of Vicksburg", uz: "Viksburg qamali", ru: "Осада Виксберга" },
-        text: {
-          en: "Vicksburg surrendered on 4 July 1863 after a 47-day siege, and the Union took control of the Mississippi River. The Library of Congress has the military survey maps drawn during the siege.",
-          uz: "Viksburg 47 kunlik qamaldan soʻng 1863-yil 4-iyulda taslim boʻldi va Ittifoq Missisipi daryosini nazoratga oldi. Kongress kutubxonasida qamal paytida chizilgan harbiy xaritalar saqlanadi.",
-          ru: "Виксберг сдался 4 июля 1863 года после 47-дневной осады, и Союз взял под контроль реку Миссисипи. В Библиотеке Конгресса хранятся военные съёмочные карты, нарисованные во время осады.",
-        },
-      },
-      {
-        year: 1962, center: [-89.52, 34.37], zoom: 5.5, query: "Oxford Mississippi",
-        title: { en: "Ole Miss, 1962", uz: "Ole Miss, 1962", ru: "Ole Miss, 1962" },
-        text: {
-          en: "In October 1962 James Meredith became the first Black student admitted to the University of Mississippi. Federal marshals and troops had to escort him onto campus. Hotty Toddy, and history.",
-          uz: "1962-yil oktabrda Jeyms Meredit Missisipi universitetiga qabul qilingan birinchi qora tanli talaba boʻldi. Uni kampusga federal marshallar va askarlar kuzatib borishi kerak boʻldi. Hotty Toddy va tarix.",
-          ru: "В октябре 1962 года Джеймс Мередит стал первым чернокожим студентом, принятым в Университет Миссисипи. На кампус его пришлось провожать федеральным маршалам и войскам. Hotty Toddy, и это история.",
-        },
-      },
-    ],
-  },
-  {
     id: "europe-redrawn",
     name: { en: "Europe redrawn, 1914–1994", uz: "Yevropa qayta chizildi, 1914–1994", ru: "Перекроенная Европа, 1914–1994" },
     blurb: {
