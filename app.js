@@ -2,11 +2,12 @@
   "use strict";
 
   // ───────── Constants ─────────
-  const BASEMAP = "https://tiles.openfreemap.org/styles/positron";
-  const OHM_TILES = "https://vtiles.openhistoricalmap.org/maps/ohm/{z}/{x}/{y}.pbf";
-  const SNAPSHOT_CDN = "https://cdn.jsdelivr.net/gh/aourednik/historical-basemaps@master/geojson/";
+  const BASEMAP = new URL("data/v1/basemap.json", location.href).href;
+  const OHM_TILES = `${location.origin}/tiles/ohm/{z}/{x}/{y}.pbf`; // slimmed and cached by api/ohm.js
+  const SNAPSHOTS_URL = "data/v1/";
   const ALLMAPS_MAPLIBRE = "https://cdn.jsdelivr.net/npm/@allmaps/maplibre@1.0.0-beta.43/+esm";
   const NOMINATIM = "https://nominatim.openstreetmap.org";
+  const OSD_SCRIPT = "vendor/openseadragon-4.1.0.min.js";
   const OSD_IMAGES = "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/";
   const LANGS = ["en", "uz", "ru"];
 
@@ -165,15 +166,36 @@
   const initPos = (params.get("pos") || "").split("/").map(Number);
   const hasPos = initPos.length === 3 && initPos.every(Number.isFinite);
 
-  const map = new maplibregl.Map({
-    container: "map",
+  const MAP_OPTIONS = {
     style: BASEMAP,
-    center: hasPos ? [initPos[2], initPos[1]] : [38, 44],
-    zoom: hasPos ? initPos[0] : 2.9,
     maxZoom: 14,
     maxPitch: 0, // the Allmaps warped layer doesn't support pitch
     attributionControl: false,
+    validateStyle: false,
+    fadeDuration: 150,
+    pixelRatio: Math.min(devicePixelRatio, 2),
+  };
+  const landing = !["maps", "history"].includes(params.get("mode"));
+  // Landing starts on the first era of the globe, so no tiles are fetched for a view that's about to move.
+  const map = new maplibregl.Map({
+    ...MAP_OPTIONS,
+    container: "map",
+    center: hasPos ? [initPos[2], initPos[1]] : landing ? [66, 38] : [38, 44],
+    zoom: hasPos ? initPos[0] : landing ? 1.2 : 2.9,
   });
+  // The trimmed basemap has no sprite; its one icon is the city dot.
+  function drawCityDot(m) {
+    m.on("styleimagemissing", (e) => {
+      if (e.id !== "circle_11_black" || m.hasImage(e.id)) return;
+      const size = 11, data = new Uint8Array(size * size * 4);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const d = Math.hypot(x - 5, y - 5);
+        data[(y * size + x) * 4 + 3] = d < 2.2 ? 255 : d < 3 ? 120 : 0;
+      }
+      m.addImage(e.id, { width: size, height: size, data });
+    });
+  }
+  drawCityDot(map);
   map.addControl(new maplibregl.AttributionControl({
     compact: true,
     customAttribution: '<a href="https://www.openhistoricalmap.org/copyright" target="_blank">© OpenHistoricalMap</a> · <a href="https://github.com/aourednik/historical-basemaps" target="_blank">historical-basemaps</a> · <a href="https://allmaps.org" target="_blank">Allmaps</a> · <a href="https://www.loc.gov/maps/" target="_blank">LoC</a>',
@@ -186,17 +208,10 @@
 
   function tintBasemap(m) {
     const c = BASE_TINT[state.theme];
-    for (const l of m.getStyle().layers) {
-      if (/^(hist|ohm|fp|warped)/.test(l.id)) continue;
-      if (/^(highway|railway|tunnel|aeroway|road|building|park|landuse|airport|boundary|label_country|label_state)/.test(l.id)) {
-        m.setLayoutProperty(l.id, "visibility", "none");
-      }
-    }
     m.setPaintProperty("background", "background-color", c.land);
     m.setPaintProperty("water", "fill-color", c.water);
     m.setPaintProperty("waterway", "line-color", c.waterway);
     for (const id of ["landcover_ice_shelf", "landcover_glacier"]) m.setPaintProperty(id, "fill-color", c.ice);
-    m.setPaintProperty("landcover_wood", "fill-opacity", 0);
     const local = state.lang === "en"
       ? ["coalesce", ["get", "name:en"], ["get", "name:latin"], ["get", "name"]]
       : ["coalesce", ["get", `name:${state.lang}`], ["get", "name:en"], ["get", "name:latin"], ["get", "name"]];
@@ -251,8 +266,8 @@
     const hov = ["boolean", ["feature-state", "hover"], false];
 
     // Soft colour tint from dated snapshots
-    m.addSource("hist", { type: "geojson", data: EMPTY, generateId: true });
-    m.addSource("hist-labels", { type: "geojson", data: EMPTY });
+    m.addSource("hist", { type: "geojson", data: EMPTY, generateId: true, maxzoom: 8, tolerance: 0.6, buffer: 32 });
+    m.addSource("hist-labels", { type: "geojson", data: EMPTY, maxzoom: 6 });
     m.addLayer({
       id: "hist-fill", type: "fill", source: "hist",
       paint: { "fill-color": fillColorExpr(), "fill-opacity": ["case", sel, 0.75, hov, 0.62, ["get", "_op"]] },
@@ -268,10 +283,10 @@
     m.addLayer({ id: "fp-line", type: "line", source: "fp", paint: { "line-color": "#b3200f", "line-width": 2, "line-dasharray": [2, 1.5] } });
 
     // Year-accurate borders from OpenHistoricalMap
-    m.addSource("ohm", { type: "vector", tiles: [OHM_TILES], maxzoom: 14, attribution: "" });
+    m.addSource("ohm", { type: "vector", tiles: [OHM_TILES], maxzoom: 10, attribution: "" });
     const adm = (lv) => ["all", ["==", ["get", "type"], "administrative"], lv];
     m.addLayer({
-      id: "ohm-adm4", type: "line", source: "ohm", "source-layer": "land_ohm_lines", minzoom: 3.5,
+      id: "ohm-adm4", type: "line", source: "ohm", "source-layer": "land_ohm_lines", minzoom: 5,
       filter: adm(["==", ["get", "admin_level"], 4]),
       paint: { "line-color": "#7a2e1c", "line-opacity": 0.55, "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 1.2], "line-dasharray": [3, 2] },
     });
@@ -321,13 +336,26 @@
   }
 
   // Only features alive in the chosen year: start ≤ year < end (OHM decimal dates).
+  // Changing a filter makes the map re-read every loaded tile, so a drag or Play
+  // updates the map a few times a second; the timeline itself still moves instantly.
   function applyYear(m, year) {
     if (!m?._baseFilters) return;
+    m._wantYear = year;
+    if (m._yearTimer) return;
+    drawYear(m, year);
+    m._yearTimer = setTimeout(() => {
+      m._yearTimer = null;
+      if (m._wantYear !== m._drawnYear) applyYear(m, m._wantYear);
+    }, 200);
+  }
+
+  function drawYear(m, year) {
+    m._drawnYear = year;
     const d = year + 0.5;
     const alive = ["all",
       ["any", ["!", ["has", "start_decdate"]], ["<=", ["get", "start_decdate"], d]],
       ["any", ["!", ["has", "end_decdate"]], [">", ["get", "end_decdate"], d]]];
-    for (const [id, base] of Object.entries(m._baseFilters)) m.setFilter(id, ["all", base, alive]);
+    for (const [id, base] of Object.entries(m._baseFilters)) m.setFilter(id, ["all", base, alive], { validate: false });
     setTint(m, year);
     updateMix(m, year);
   }
@@ -359,51 +387,31 @@
     }
     return inside;
   }
-  // A point that's actually inside the shape: centroid if it works, else the
-  // middle of the widest horizontal run through it (handles crescents).
-  function labelPoint(r) {
-    let cx = 0, cy = 0, a = 0;
-    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-      const f = r[j][0] * r[i][1] - r[i][0] * r[j][1];
-      cx += (r[j][0] + r[i][0]) * f; cy += (r[j][1] + r[i][1]) * f; a += f;
+  // Label positions come pre-computed in the data files (tools/build-data.mjs).
+  function prepGeo(d) {
+    for (const f of d.polys.features) {
+      const p = f.properties;
+      p._ci = p.NAME ? hashStr(p.NAME) % PALETTE.light.length : -1;
+      p._op = p.NAME ? 0.42 : 0.2;
     }
-    const c = a ? [cx / (3 * a), cy / (3 * a)] : r[0];
-    if (pointInRing(c, r)) return c;
-    const y = c[1], xs = [];
-    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-      const [x1, y1] = r[j], [x2, y2] = r[i];
-      if ((y1 > y) !== (y2 > y)) xs.push(x1 + ((y - y1) * (x2 - x1)) / (y2 - y1));
-    }
-    xs.sort((p, q) => p - q);
-    let best = r[0], w = -1;
-    for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > w) { w = xs[i + 1] - xs[i]; best = [(xs[i] + xs[i + 1]) / 2, y]; }
-    return best;
-  }
-
-  function prepGeo(gj) {
-    const labels = [];
-    for (const f of gj.features) {
-      const p = f.properties || (f.properties = {});
-      const name = p.NAME || null;
-      p._ci = name ? hashStr(name) % PALETTE.light.length : -1;
-      p._op = name ? 0.42 : 0.2;
-      if (!name || !f.geometry) continue;
-      const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [];
-      let big = null, bigA = 0, total = 0;
-      for (const poly of polys) { const a = ringArea(poly[0]); total += a; if (a > bigA) { bigA = a; big = poly[0]; } }
-      if (big) labels.push({ type: "Feature", properties: { name, area: total }, geometry: { type: "Point", coordinates: labelPoint(big) } });
-    }
-    return { polys: gj, labels: { type: "FeatureCollection", features: labels } };
+    return d;
   }
 
   function loadSnapshot(s) {
     if (!geoCache.has(s)) {
-      geoCache.set(s, fetch(SNAPSHOT_CDN + snapFile(s) + ".geojson")
+      geoCache.set(s, fetch(`${SNAPSHOTS_URL}${snapFile(s)}.json`)
         .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(prepGeo)
         .catch((e) => { geoCache.delete(s); throw e; }));
     }
     return geoCache.get(s);
+  }
+
+  // Quietly fetch what's likely next, unless the visitor asked to save data.
+  const whenIdle = window.requestIdleCallback || ((fn) => setTimeout(fn, 300));
+  function warmSnapshots(list) {
+    if (navigator.connection?.saveData) return;
+    whenIdle(() => list.forEach((n) => n != null && loadSnapshot(n).catch(() => {})));
   }
 
   function setTint(m, year) {
@@ -420,7 +428,7 @@
       m.getSource("hist-labels").setData(d.labels);
       if (m === map) $("#borders-loading").hidden = true;
       const i = SNAPSHOTS.indexOf(s);
-      [SNAPSHOTS[i - 1], SNAPSHOTS[i + 1]].forEach((n) => n != null && loadSnapshot(n).catch(() => {}));
+      if (state.mode !== "landing") warmSnapshots([SNAPSHOTS[i - 1], SNAPSHOTS[i + 1]]);
     }).catch(() => {
       if (m === map) { $("#borders-loading").hidden = true; toast(t("toast.bordersFailed", { y: fmtYear(s) })); }
       m._snap = null;
@@ -428,7 +436,7 @@
   }
 
   function updatePill() {
-    $("#pill-text").innerHTML = `${esc(t("pill.borders", { year: fmtYear(state.year) }))} <span class="muted">· ${esc(t("pill.tint", { snap: fmtYear(map._snap ?? snapshotFor(state.year)) }))}</span>`;
+    $("#pill-text").innerHTML = `${esc(t("pill.borders", { year: fmtYear(state.year) }))} <span class="muted">· ${esc(t("pill.tint", { snap: fmtYear(snapshotFor(state.year)) }))}</span>`;
   }
 
   function setToggle(kind, on) {
@@ -557,7 +565,17 @@
   }
 
   function wireRegionEvents() {
+    // Hover lookups are throttled, and skipped while the map is moving.
+    let hoverEvent = null;
     map.on("mousemove", (e) => {
+      if (hoverEvent === null) setTimeout(() => {
+        const ev = hoverEvent;
+        hoverEvent = null;
+        if (!map.isMoving()) hoverAt(ev);
+      }, 60);
+      hoverEvent = e;
+    });
+    function hoverAt(e) {
       if (state.mode === "landing" || quiz.clickTarget) { tip.remove(); return; }
       const pad = 8;
       const box = [[e.point.x - pad, e.point.y - pad], [e.point.x + pad, e.point.y + pad]];
@@ -573,7 +591,7 @@
       map.getCanvas().style.cursor = name ? "pointer" : "";
       if (name && matchMedia("(hover: hover)").matches) tip.setLngLat(e.lngLat).setText(name).addTo(map);
       else tip.remove();
-    });
+    }
     map.on("mouseout", () => tip.remove());
     map.on("click", (e) => {
       if (state.mode === "landing") return;
@@ -901,7 +919,7 @@
     const progress = view.geo
       ? t("panel.reading", { done: all.length - pending.length, total: all.length })
       : t("panel.reading", { done: 0, total: "…" }); // area results not back yet
-    $("#panel-sub").textContent = settled ? count : `${count} · ${progress}`;
+    $("#panel-sub").textContent = settled || (view.geo && !pending.length) ? count : `${count} · ${progress}`;
   }
 
   function cardHTML(it) {
@@ -923,7 +941,7 @@
           </span>
         </div>
       </div>
-      <img class="thumb" loading="lazy" src="${esc(it.thumb)}" alt="" onerror="this.style.visibility='hidden'">
+      <img class="thumb" loading="lazy" decoding="async" src="${esc(it.thumb)}" alt="" onerror="this.style.visibility='hidden'">
     </li>`;
   }
 
@@ -1037,7 +1055,17 @@
     $("#v-fav").textContent = t(favs[currentItem.id] ? "viewer.saved" : "viewer.save");
   }
 
-  function openViewer(it) {
+  // The deep-zoom library only loads once someone is about to open a map.
+  let osdScript = null;
+  function loadOsd() {
+    osdScript ??= new Promise((resolve, reject) => {
+      const el = Object.assign(document.createElement("script"), { src: OSD_SCRIPT, onload: resolve, onerror: reject });
+      document.head.append(el);
+    });
+    return osdScript;
+  }
+
+  async function openViewer(it) {
     if (!it) return;
     currentItem = it;
     itemIndex[it.id] = it;
@@ -1064,6 +1092,14 @@
     $("#viewer-loading").textContent = t("viewer.loading");
     if (!dlg.open) dlg.showModal();
 
+    try {
+      await loadOsd();
+    } catch {
+      osdScript = null;
+      $("#viewer-loading").textContent = t("viewer.failed");
+      return;
+    }
+    if (currentItem !== it) return;
     if (!osd) {
       osd = OpenSeadragon({
         element: $("#osd"),
@@ -1194,14 +1230,12 @@
     $("#swipe-right-label").textContent = fmtYear(state.compareYear);
     if (!cmpMap) {
       cmpMap = new maplibregl.Map({
+        ...MAP_OPTIONS,
         container: "map-compare",
-        style: BASEMAP,
         center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(),
-        maxZoom: 14,
-        maxPitch: 0,
-        attributionControl: false,
       });
-      cmpMap.on("load", () => {
+      drawCityDot(cmpMap);
+      cmpMap.once("style.load", () => {
         tintBasemap(cmpMap);
         addHistoryLayers(cmpMap);
         if (state.globe) cmpMap.setProjection({ type: "globe" });
@@ -1374,6 +1408,7 @@
     }, animate ? 260 : 0);
     if (animate) map.easeTo({ center: s.center, duration: 3000, easing: (k) => k * (2 - k) });
     else map.jumpTo({ center: s.center });
+    warmSnapshots([snapshotFor(SHOWCASE[(i + 1) % SHOWCASE.length].year)]);
   }
 
   function scheduleHero() {
@@ -1381,7 +1416,7 @@
     if (hero.paused || state.mode !== "landing") return;
     hero.timer = setTimeout(() => {
       // Let someone who is dragging the globe finish before moving it.
-      if (Date.now() - hero.touched > 5000) showEra((hero.idx + 1) % SHOWCASE.length, true);
+      if (!document.hidden && Date.now() - hero.touched > 5000) showEra((hero.idx + 1) % SHOWCASE.length, true);
       scheduleHero();
     }, 4600);
   }
@@ -1691,7 +1726,7 @@
     document.documentElement.dataset.theme = th;
     $('meta[name="theme-color"]').content = th === "dark" ? "#1d1914" : "#f6f2ea";
     store.set("theme", th);
-    for (const m of [map, cmpMap]) if (m?.isStyleLoaded()) tintBasemap(m);
+    for (const m of [map, cmpMap]) if (m?.getLayer("hist-fill")) tintBasemap(m);
   }
 
   function applyI18n() {
@@ -1719,7 +1754,7 @@
     state.lang = lang;
     store.set("lang", lang);
     applyI18n();
-    for (const m of [map, cmpMap]) if (m?.isStyleLoaded()) tintBasemap(m);
+    for (const m of [map, cmpMap]) if (m?.getLayer("hist-fill")) tintBasemap(m);
     $("#region-card").hidden = true;
     lastKey = null;
     if (state.mode === "maps") refreshMaps();
@@ -1858,7 +1893,8 @@
     });
     cards.addEventListener("mouseover", (e) => {
       const card = e.target.closest(".card[data-id]");
-      showFootprint(card ? itemIndex[card.dataset.id] : null);
+      showFootprint(card && card.dataset.id !== overlayItem?.id ? itemIndex[card.dataset.id] : null);
+      if (card) loadOsd().catch(() => {});
     });
     cards.addEventListener("mouseleave", () => showFootprint(null));
 
@@ -1955,21 +1991,21 @@
   wireSwipe();
   wireUI();
 
-  setYear(parseYear(params.get("year") || "") ?? 1862, { refresh: false });
+  setYear(parseYear(params.get("year") || "") ?? (landing ? SHOWCASE[hero.idx].year : 1862), { refresh: false });
   if (params.get("q")) state.query = params.get("q");
   const initCmp = parseYear(params.get("cmp") || "");
   if (initCmp != null) state.compareYear = initCmp;
 
-  map.on("load", () => {
+  // style.load, not load: colours and borders go on before the first tiles are drawn.
+  map.once("style.load", () => {
     mapReady = true;
     tintBasemap(map);
     addHistoryLayers(map);
     map._snap = null;
     applyYear(map, state.year);
     wireRegionEvents();
-    const mode = params.get("mode");
-    if (mode === "maps" || mode === "history") setMode(mode);
-    else startHero();
+    if (landing) startHero();
+    else setMode(params.get("mode"));
     if (initCmp != null) setCompare(true);
     const ov = params.get("ov");
     if (ov) Sources.allmapsItem(ov).then(overlayMap).catch(() => toast(t("toast.reopenFailed")));

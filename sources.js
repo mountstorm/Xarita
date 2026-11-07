@@ -197,7 +197,7 @@ window.Sources = (() => {
       url: guessHomepage(iiif),
       desc: "",
       tags: [],
-      thumb: `${iiif}/full/!240,240/0/default.jpg`,
+      thumb: `${iiif}/full/!200,200/0/default.jpg`,
       full: `${iiif}/full/${v3 ? "max" : "full"}/0/default.jpg`,
       viewer: `https://viewer.allmaps.org/?url=${encodeURIComponent(m.id)}`,
     };
@@ -295,7 +295,9 @@ window.Sources = (() => {
         const overlap = bboxAreaM2(intersect(it.bbox, view));
         return a <= viewArea * 60 && overlap >= Math.min(a, viewArea) * 0.25;
       })
-      .slice(0, 60);
+      // Best scale match first, and only as many records as a panel can usefully show.
+      .sort((a, b) => Math.abs(Math.log(bboxAreaM2(a.bbox) / viewArea)) - Math.abs(Math.log(bboxAreaM2(b.bbox) / viewArea)))
+      .slice(0, 40);
     return items.map((it) => applyMeta(Object.assign(it, { pending: true })));
   }
 
