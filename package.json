@@ -1,0 +1,25 @@
+{
+  "name": "xarita",
+  "private": true,
+  "description": "Interactive atlas of historical maps: year-accurate borders, scans from 15+ libraries, overlays and quizzes.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node tools/dev.mjs",
+    "test": "node --test test/",
+    "lint": "biome ci .",
+    "format": "biome check --write .",
+    "typecheck": "tsc -p jsconfig.json",
+    "check:size": "node tools/check-size.mjs",
+    "bench": "node tools/bench.mjs",
+    "build:data": "node tools/build-data.mjs .cache/data",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run check:size"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.5",
+    "@types/node": "26.6.5",
+    "typescript": "6.0.3"
+  }
+}

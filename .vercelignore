@@ -1,4 +1,9 @@
+node_modules
+.cache
 tools
+test
+docs
+.github
 README.md
 data/README.md
 .env*
