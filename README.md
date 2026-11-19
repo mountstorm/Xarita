@@ -11,8 +11,8 @@ a 200-year-old map from a library over today's streets.**
 
 ![Sliding the timeline over Europe from 1880 to 1995](docs/media/timeline.gif)
 
-*Xarita* means "map" in Uzbek. Made by Muhammad Sodiq Khaydarov in Tashkent, built
-with generative AI coding tools.
+*Xarita* means "map" in Uzbek. Made by two brothers from Tashkent, Muhammad Sodik Khaydarov
+and Muzaffar Khaydarov, with generative AI coding tools.
 
 ## What it does
 
