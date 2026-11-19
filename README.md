@@ -43,10 +43,10 @@ with generative AI coding tools.
 | | Performance | Accessibility | Best practices | SEO | Largest paint | Blocking time |
 |---|---|---|---|---|---|---|
 | Before (production) | 40 | 96 | 100 | 100 | 6.0 s | 2,620 ms |
-| After (local, production-like server) | 99 | 100 | 100 | 100 | 0.9 s | 20 ms |
+| After (production) | 100 | 100 | 100 | 100 | 1.1 s | 60 ms |
 
-Full reports are in [`docs/lighthouse/`](docs/lighthouse/). The "after" row will be
-re-measured on production after the next deploy.
+Measured on the live site on 2026-11-19. Performance scored 95–100 across three runs;
+the table shows the median run. Full reports are in [`docs/lighthouse/`](docs/lighthouse/).
 
 ## Architecture
 
