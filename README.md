@@ -4,10 +4,10 @@
 a 200-year-old map from a library over today's streets.**
 
 [![CI](https://github.com/mountstorm/Xarita/actions/workflows/ci.yml/badge.svg)](https://github.com/mountstorm/Xarita/actions/workflows/ci.yml)
-[![Live site](https://img.shields.io/badge/live-xarita--atlas.vercel.app-b3200f)](https://xarita-atlas.vercel.app)
+[![Live site](https://img.shields.io/badge/live-xarita--learn.online-b3200f)](https://www.xarita-learn.online)
 [![License: MIT](https://img.shields.io/badge/license-MIT-4a3421)](LICENSE)
 
-**Live:** https://xarita-atlas.vercel.app
+**Live:** https://www.xarita-learn.online
 
 ![Sliding the timeline over Europe from 1880 to 1995](docs/media/timeline.gif)
 
